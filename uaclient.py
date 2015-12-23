@@ -6,6 +6,7 @@ from xml.sax.handler import ContentHandler
 import sys
 import socket
 import time
+import hashlib
 
 
 def Get_Time():
@@ -87,16 +88,15 @@ if __name__ == "__main__":
 
     if Metodo == "REGISTER":
         request = Metodo + ' sip:' + NAME + ':' + UAS_PORT + ' SIP/2.0\r\n'
-        body = 'Expires: ' + Option + '\r\n\r\n'
+        request += 'Expires: ' + Option + '\r\n'
     elif Metodo == "INVITE":
         request = Metodo + ' sip:' + Option + ' SIP/2.0\r\n'
         description = 'v=0\r\no=' + NAME + ' ' + UAS_IP
         description += '\r\ns=Ciudad del Miedo\r\nt=0\r\nm=audio '
         description += str(RTP_PORT) + ' RTP\r\n'
-        body = 'Content-Type: application/sdp' + '\r\n\r\n' + description
+        request += 'Content-Type: application/sdp' + '\r\n\r\n' + description
     elif Metodo == "BYE":
         request = Metodo + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
-        body = ''
     else:
         sys.exit('No valid METHOD')
 
@@ -105,8 +105,61 @@ if __name__ == "__main__":
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((PR_IP, PR_PORT))
 
-    print("Enviando: " + request + body)
-    LogText = request + body
+    print("Enviando: \r\n" + request)
+    LogText = request
     Text_List = LogText.split('\r\n')
     LogText = " ".join(Text_List)
     Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
+
+    try:
+        request_encoded = request.encode('utf-8')
+        my_socket.send(request_encoded + b'\r\n')
+        Answer = my_socket.recv(1024)
+    except socket.error:
+        LogText = 'Error: No server listening at ' + PR_IP + ' port ' + PR_PORT
+        Log(LOG_FICH, 'Error', LogText, '', '')
+        sys.exit(LogText)
+
+    Answer_decode = Answer.decode('utf-8')
+    print("Recibido: \r\n" + Answer_decode)
+    LogText = Answer_decode
+    Text_List = LogText.split('\r\n')
+    LogText = " ".join(Text_List)
+    Log(LOG_FICH, 'Receive', LogText, PR_IP, PR_PORT)
+    Answer_list = Answer_decode.split("\r\n")
+    Answer_list.pop()
+    if Answer_list[0] == "SIP/2.0 401 Unauthorized":
+        m = hashlib.md5()
+        nonce = Answer_list[1].split("=")[-1]
+        m.update(bytes(PSSWRD, 'utf-8'))
+        m.update(bytes(nonce, 'utf-8'))
+        request += "Authorization: response=" + m.hexdigest() + "\r\n"
+        request_encoded = request.encode('utf-8')
+        my_socket.send(request_encoded + b'\r\n')
+        print("Enviando: \r\n" + request)
+        LogText = request
+        Text_List = LogText.split('\r\n')
+        LogText = " ".join(Text_List)
+        Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
+    elif len(Answer_list) == 3:
+        Metodo = "ACK"
+        line = Metodo + " sip:" + Direccion.split(":")[0] + " SIP/2.0\r\n\r\n"
+        print("Enviando: " + line)
+        my_socket.send(bytes(line, 'utf-8') + b'\r\n')
+        LogText = line
+        Text_List = LogText.split('\r\n')
+        LogText = " ".join(Text_List)
+        Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
+
+    Answer = my_socket.recv(1024)
+    Answer_decode = Answer.decode('utf-8')
+    print("Recibido: \r\n" + Answer_decode)
+    LogText = Answer_decode
+    Text_List = LogText.split('\r\n')
+    LogText = " ".join(Text_List)
+    Log(LOG_FICH, 'Receive', LogText, PR_IP, PR_PORT)
+    print("Terminando socket...")
+
+    # Cerramos todo
+    my_socket.close()
+    print("Fin.")
