@@ -92,7 +92,7 @@ if __name__ == "__main__":
     elif Metodo == "INVITE":
         request = Metodo + ' sip:' + Option + ' SIP/2.0\r\n'
         description = 'v=0\r\no=' + NAME + ' ' + UAS_IP
-        description += '\r\ns=Ciudad del Miedo\r\nt=0\r\nm=audio '
+        description += '\r\ns=Avengers Sesion\r\nt=0\r\nm=audio '
         description += str(RTP_PORT) + ' RTP\r\n'
         request += 'Content-Type: application/sdp' + '\r\n\r\n' + description
     elif Metodo == "BYE":
@@ -105,6 +105,7 @@ if __name__ == "__main__":
     my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     my_socket.connect((PR_IP, PR_PORT))
 
+    Log(LOG_FICH, 'Start', '', PR_IP, PR_PORT)
     print("Enviando: \r\n" + request)
     LogText = request
     Text_List = LogText.split('\r\n')
@@ -150,6 +151,7 @@ if __name__ == "__main__":
         Text_List = LogText.split('\r\n')
         LogText = " ".join(Text_List)
         Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
+        # Envio de audio
 
     Answer = my_socket.recv(1024)
     Answer_decode = Answer.decode('utf-8')
@@ -162,4 +164,5 @@ if __name__ == "__main__":
 
     # Cerramos todo
     my_socket.close()
+    Log(LOG_FICH, 'Finish', '', PR_IP, PR_PORT)
     print("Fin.")
