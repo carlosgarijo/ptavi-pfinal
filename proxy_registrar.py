@@ -43,6 +43,11 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
     """
     users_dicc = {}
 
+    def registrar_users(self, users_info):
+        self.users_dicc = users_info
+
+
+    """
     def registered2file(self):
         fich = open(DATABASE_PATH, "w")
         line = "User\tIP\tPort\tRegister time\tExpires\r\n"
@@ -52,11 +57,13 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
             line += str(self.users_dicc[user][2]) + "\t"
             line += str(self.users_dicc[user][3]) + "\r\n"
         fich.write(line)
+    """
 
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
         Client_IP = str(self.client_address[0])
         nonce = 1705201402032012
+        self.registrar_users(users_info)
         while 1:
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
@@ -68,24 +75,41 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                 Metodo_rcv = line_decode.split(" ")[0]
                 if Metodo_rcv == "REGISTER":
                     if len(request) == 4:
-                        Answer = "SIP/2.0 401 Unauthorized\r\n"
-                        Answer += "WWW Authenticate: nonce="
-                        Answer += str(nonce) + "\r\n\r\n"
-                        self.wfile.write(bytes(Answer, 'utf-8'))
-                    else:
-                        response = request[-1].split('=')[-1]
-                        response = response.split('\r')[0]
-                        m = hashlib.md5()
-                        m.update(bytes(passwords[0], 'utf-8'))
-                        m.update(bytes(str(nonce), 'utf-8'))
-                        if m.hexdigest() == response:
-                            Answer = "SIP/2.0 200 OK\r\n\r\n"
-                            # FALTA AGREGAR SDP
-                            self.wfile.write(bytes(Answer, 'utf-8'))
-                        else:
+                        expires = int(request[-1].split('=')[-1])
+                        if expires > 0:
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
                             Answer += "WWW Authenticate: nonce="
                             Answer += str(nonce) + "\r\n\r\n"
+                            self.wfile.write(bytes(Answer, 'utf-8'))
+                        elif expires = 0:
+                            del self.users_dicc[sip_user]
+                            Answer = "SIP/2.0 200 OK\r\n\r\n"
+                            # FALTA AGREGAR SDP
+                            self.wfile.write(bytes(Answer, 'utf-8'))
+                    else:
+                        if expires > 0:
+                            response = request[-1].split('=')[-1]
+                            response = response.split('\r')[0]
+                            m = hashlib.md5()
+                            for user in self.users_dicc.keys():
+                                if user == sip_user:
+                                    password = self.users_dicc[user]
+
+                            m.update(bytes(password, 'utf-8'))
+                            m.update(bytes(str(nonce), 'utf-8'))
+                            if m.hexdigest() == response:
+                                Answer = "SIP/2.0 200 OK\r\n\r\n"
+                                # FALTA AGREGAR SDP
+                                self.wfile.write(bytes(Answer, 'utf-8'))
+                            else:
+                                Answer = "SIP/2.0 401 Unauthorized\r\n"
+                                Answer += "WWW Authenticate: nonce="
+                                Answer += str(nonce) + "\r\n\r\n"
+                                self.wfile.write(bytes(Answer, 'utf-8'))
+                        elif expires == 0:
+                            del self.users_dicc[sip_user]
+                            Answer = "SIP/2.0 200 OK\r\n\r\n"
+                            # FALTA AGREGAR SDP
                             self.wfile.write(bytes(Answer, 'utf-8'))
                 elif Metodo_rcv == "INVITE":
                     Answer = "SIP/2.0 100 Trying\r\n\r\n"
@@ -93,10 +117,12 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                     Answer += "SIP/2.0 200 OK\r\n\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8'))
                 elif Metodo_rcv == "ACK":
+                    """
                     aEjecutar = "./mp32rtp -i " + Client_IP
                     aEjecutar += " -p 23032 < " + fichero_audio
                     print("Ejecutamos... ", aEjecutar)
                     os.system(aEjecutar)
+                    """
                 elif Metodo_rcv == "BYE":
                     Answer = "SIP/2.0 200 OK\r\n\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8'))
@@ -135,12 +161,10 @@ if __name__ == "__main__":
     # Cogemos las contraseñas del fichero passwords.txt
     with open(PSSWRD_PATH, newline='') as pwrd_fich:
         lineas = csv.reader(pwrd_fich)
-        i = 0
-        passwords = ['b', 'a']
+        users_info = {}
         for linea in lineas:
             help_line = linea[0].split(':')
-            passwords[i] = help_line[-1]
-            i = i + 1
+            users_info[help_line[0]] = help_line[-1]
 
     try:
         serv = socketserver.UDPServer(("", PR_PORT), SIPProxyHandler)
