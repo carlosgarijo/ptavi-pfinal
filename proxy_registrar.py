@@ -58,6 +58,12 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                 line += str(self.users_dicc[user][3]) + "\r\n"
         fich.write(line)
 
+    def expire_user(self):
+        for user in self.users_dicc.keys():
+            total_time = self.users_dicc[user][2]
+            total_time += self.users_dicc[user][3]
+            if total_time < time.time():
+                del self.users_dicc[user]
 
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
@@ -65,6 +71,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
         nonce = 1705201402032012
         self.registrar_users(users_info)
         while 1:
+            # Comprobamos si algun usuario ha expirado
+            self.expire_user()
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
             line_decode = line.decode('utf-8')
@@ -104,7 +112,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                                 Answer = "SIP/2.0 200 OK\r\n\r\n"
                                 # FALTA AGREGAR SDP
                                 self.wfile.write(bytes(Answer, 'utf-8'))
-                                self.users_dicc[sip_user] = (self.client_address[0], Client_Port,
+                                self.users_dicc[sip_user] = (Client_IP, Client_Port,
                                                              time.time(), float(expires))
                             else:
                                 Answer = "SIP/2.0 401 Unauthorized\r\n"
@@ -120,6 +128,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         self.registered2file(sip_user)
 
                 elif Metodo_rcv == "INVITE":
+                    print(request)
                     Answer = "SIP/2.0 100 Trying\r\n\r\n"
                     Answer += "SIP/2.0 180 Ring\r\n\r\n"
                     Answer += "SIP/2.0 200 OK\r\n\r\n"
