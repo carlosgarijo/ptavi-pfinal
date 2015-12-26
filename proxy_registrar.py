@@ -47,17 +47,17 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
         self.users_dicc = users_info
 
 
-    """
-    def registered2file(self):
+    def registered2file(self, sip_user):
         fich = open(DATABASE_PATH, "w")
         line = "User\tIP\tPort\tRegister time\tExpires\r\n"
         for user in self.users_dicc.keys():
-            line += sip_user + "\t" + self.users_dicc[user][0] + "\t"
-            line += self.users_dicc[user][1] + "\t"
-            line += str(self.users_dicc[user][2]) + "\t"
-            line += str(self.users_dicc[user][3]) + "\r\n"
+            if user == sip_user:
+                line += user + "\t" + self.users_dicc[user][0] + "\t"
+                line += str(self.users_dicc[user][1]) + "\t"
+                line += str(self.users_dicc[user][2]) + "\t"
+                line += str(self.users_dicc[user][3]) + "\r\n"
         fich.write(line)
-    """
+
 
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
@@ -71,22 +71,25 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
             if line_decode:
                 request = line_decode.split(" ")
                 sip_user = request[1].split(':')[1]
+                Client_Port = int(request[1].split(':')[-1])
                 print("El cliente nos manda -- \r\n" + line_decode)
                 Metodo_rcv = line_decode.split(" ")[0]
                 if Metodo_rcv == "REGISTER":
                     if len(request) == 4:
-                        expires = int(request[-1].split('=')[-1])
+                        expires = int(request[-1].split(':')[-1])
+                        print(expires)
                         if expires > 0:
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
                             Answer += "WWW Authenticate: nonce="
                             Answer += str(nonce) + "\r\n\r\n"
                             self.wfile.write(bytes(Answer, 'utf-8'))
-                        elif expires = 0:
+                        elif expires == 0:
                             del self.users_dicc[sip_user]
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
                             # FALTA AGREGAR SDP
                             self.wfile.write(bytes(Answer, 'utf-8'))
                     else:
+                        expires = int(request[3].split('\r\n')[0])
                         if expires > 0:
                             response = request[-1].split('=')[-1]
                             response = response.split('\r')[0]
@@ -101,6 +104,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                                 Answer = "SIP/2.0 200 OK\r\n\r\n"
                                 # FALTA AGREGAR SDP
                                 self.wfile.write(bytes(Answer, 'utf-8'))
+                                self.users_dicc[sip_user] = (self.client_address[0], Client_Port,
+                                                             time.time(), float(expires))
                             else:
                                 Answer = "SIP/2.0 401 Unauthorized\r\n"
                                 Answer += "WWW Authenticate: nonce="
@@ -111,6 +116,9 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
                             # FALTA AGREGAR SDP
                             self.wfile.write(bytes(Answer, 'utf-8'))
+
+                        self.registered2file(sip_user)
+
                 elif Metodo_rcv == "INVITE":
                     Answer = "SIP/2.0 100 Trying\r\n\r\n"
                     Answer += "SIP/2.0 180 Ring\r\n\r\n"
