@@ -128,6 +128,7 @@ if __name__ == "__main__":
     LogText = " ".join(Text_List)
     Log(LOG_FICH, 'Receive', LogText, PR_IP, PR_PORT)
     Answer_list = Answer_decode.split("\r\n")
+    print(Answer_list)
     Answer_list.pop()
     if Answer_list[0] == "SIP/2.0 401 Unauthorized":
         m = hashlib.md5()
@@ -142,10 +143,10 @@ if __name__ == "__main__":
         Text_List = LogText.split('\r\n')
         LogText = " ".join(Text_List)
         Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
-    elif len(Answer_list) == 3:
+    elif Answer_list[0] == "SIP/2.0 100 Trying":
         Metodo = "ACK"
-        line = Metodo + " sip:" + Direccion.split(":")[0] + " SIP/2.0\r\n\r\n"
-        print("Enviando: " + line)
+        line = Metodo + " sip:" + Option + " SIP/2.0\r\n\r\n"
+        print("Enviando: \r\n" + line)
         my_socket.send(bytes(line, 'utf-8') + b'\r\n')
         LogText = line
         Text_List = LogText.split('\r\n')
@@ -155,11 +156,12 @@ if __name__ == "__main__":
 
     Answer = my_socket.recv(1024)
     Answer_decode = Answer.decode('utf-8')
-    print("Recibido: \r\n" + Answer_decode)
-    LogText = Answer_decode
-    Text_List = LogText.split('\r\n')
-    LogText = " ".join(Text_List)
-    Log(LOG_FICH, 'Receive', LogText, PR_IP, PR_PORT)
+    if Answer_decode:
+        print("Recibido: \r\n" + Answer_decode)
+        LogText = Answer_decode
+        Text_List = LogText.split('\r\n')
+        LogText = " ".join(Text_List)
+        Log(LOG_FICH, 'Receive', LogText, PR_IP, PR_PORT)
     print("Terminando socket...")
 
     # Cerramos todo
