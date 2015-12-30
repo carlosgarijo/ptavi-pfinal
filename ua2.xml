@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<config>
+  <account username="ironman@avengers.com" passwd="tonystark"/>
+  <uaserver ip="" puerto="5061"/>
+  <rtpaudio puerto="23033"/>
+  <regproxy ip="127.0.0.1" puerto="5001"/>
+  <log path="./log_ua2.txt"/>
+  <audio path="./cancion.mp3"/>
+</config>
