@@ -29,6 +29,10 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
             if line_decode:
                 request = line_decode.split(" ")
                 print("El cliente nos manda -- \r\n" + line_decode)
+                LogText = line_decode
+                Text_List = LogText.split('\r\n')
+                LogText = " ".join(Text_List)
+                Log(LOG_FICH, 'Receive', LogText, Client_IP, int(self.client_address[1]))
                 Metodo_rcv = request[0]
                 if Metodo_rcv in Method_List:
                     if Metodo_rcv == "INVITE":
@@ -39,10 +43,10 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         Answer = "SIP/2.0 100 Trying\r\n\r\n"
                         Answer += "SIP/2.0 180 Ring\r\n\r\n"
                         Answer += "SIP/2.0 200 OK\r\n"
-                        description = 'v=0\r\no=' + NAME + ' ' + UAS_IP
-                        description += '\r\ns=Avengers Sesion\r\nt=0\r\nm=audio '
-                        description += str(RTP_PORT) + ' RTP\r\n\r\n'
-                        Answer += 'Content-Type: application/sdp' + '\r\n\r\n' + description
+                        SDP = 'v=0\r\no=' + NAME + ' ' + UAS_IP
+                        SDP += '\r\ns=Avengers Sesion\r\nt=0\r\nm=audio '
+                        SDP += str(RTP_PORT) + ' RTP\r\n\r\n'
+                        Answer += 'Content-Type: application/sdp' + '\r\n\r\n' + SDP
                         self.wfile.write(bytes(Answer, 'utf-8'))
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
