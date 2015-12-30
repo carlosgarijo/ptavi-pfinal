@@ -179,12 +179,27 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             self.wfile.write(Error)
                         my_socket.close()
                 elif Metodo_rcv == "ACK":
-                    """
-                    aEjecutar = "./mp32rtp -i " + Client_IP
-                    aEjecutar += " -p 23032 < " + fichero_audio
-                    print("Ejecutamos... ", aEjecutar)
-                    os.system(aEjecutar)
-                    """
+                    invited_user = request[1].split(':')[-1]
+                    UAS_IP = self.users_dicc[invited_user][0]
+                    UAS_PORT = self.users_dicc[invited_user][1]
+                    UAS_PORT = int(UAS_PORT)
+                    print('Reenviamos a...' + UAS_IP + ' - ' + str(UAS_PORT))
+                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    my_socket.connect((UAS_IP, UAS_PORT))
+                    try:
+                        # Reenviamos al UAServer el INVITE
+                        my_socket.send(line)
+                        LogText = line_decode
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, UAS_IP, UAS_PORT)
+                    except socket.error:
+                        Error = "Error: No User Agent Server Listening"
+                        print(Error)
+                        self.wfile.write(Error)
+                    my_socket.close()
+                    
                 elif Metodo_rcv == "BYE":
                     Answer = "SIP/2.0 200 OK\r\n\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8'))
