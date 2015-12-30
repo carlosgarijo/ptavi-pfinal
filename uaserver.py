@@ -56,15 +56,27 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         os.system(aEjecutar)
                         print("Envio finalizado")
                     elif Metodo_rcv == "BYE":
-                        Answer = "SIP/2.0 200 OK\r\n\r\n"
-                        self.wfile.write(bytes(Answer, 'utf-8'))
+                        Answer = "SIP/2.0 200 OK\r\n"
+                        self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
+                        LogText = Answer
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
                         print("Terminando conversación... ")
                     elif Metodo_rcv != ("INVITE", "ACK", "BYE"):
-                        Answer = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
-                        self.wfile.write(bytes(Answer, 'utf-8'))
+                        Answer = "SIP/2.0 405 Method Not Allowed\r\n"
+                        self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
+                        LogText = Answer
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
                 else:
-                    Answer = "SIP/2.0 400 Bad Request\r\n\r\n"
-                    self.wfile.write(bytes(Answer, 'utf-8'))
+                    Answer = "SIP/2.0 400 Bad Request\r\n"
+                    self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
+                    LogText = Answer
+                    Text_List = LogText.split('\r\n')
+                    LogText = " ".join(Text_List)
+                    Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
