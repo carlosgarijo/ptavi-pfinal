@@ -4,6 +4,7 @@
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 import sys
+import os
 import socket
 import time
 import hashlib
@@ -128,7 +129,6 @@ if __name__ == "__main__":
     LogText = " ".join(Text_List)
     Log(LOG_FICH, 'Receive', LogText, PR_IP, PR_PORT)
     Answer_list = Answer_decode.split("\r\n")
-    print(Answer_list)
     Answer_list.pop()
     if Answer_list[0] == "SIP/2.0 401 Unauthorized":
         m = hashlib.md5()
@@ -152,19 +152,20 @@ if __name__ == "__main__":
         Text_List = LogText.split('\r\n')
         LogText = " ".join(Text_List)
         Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
-        # Envio de audio
+        # Enviamos audio
+        RTP_IP_Send = Answer_list[8].split(' ')[-1]
+        RTP_PORT_Send = int(Answer_list[11].split(' ')[1])
+        print("Enviamos audio a " + RTP_IP_Send + "-" + str(RTP_PORT_Send))
+        aEjecutar = "./mp32rtp -i " + RTP_IP_Send
+        aEjecutar += " -p " + str(RTP_PORT_Send) + " < " + SONG
+        print("Ejecutamos... ", aEjecutar)
+        os.system(aEjecutar)
+        print("Envio finalizado")
+    elif Answer_list[0] == "SIP/2.0 200 OK":
+        Log(LOG_FICH, 'Finish', '', PR_IP, PR_PORT)
 
-    Answer = my_socket.recv(1024)
-    Answer_decode = Answer.decode('utf-8')
-    if Answer_decode:
-        print("Recibido: \r\n" + Answer_decode)
-        LogText = Answer_decode
-        Text_List = LogText.split('\r\n')
-        LogText = " ".join(Text_List)
-        Log(LOG_FICH, 'Receive', LogText, PR_IP, PR_PORT)
     print("Terminando socket...")
 
     # Cerramos todo
     my_socket.close()
-    Log(LOG_FICH, 'Finish', '', PR_IP, PR_PORT)
     print("Fin.")
