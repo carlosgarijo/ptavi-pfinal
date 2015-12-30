@@ -58,12 +58,14 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                 line += str(self.users_dicc[user][3]) + "\r\n"
         fich.write(line)
 
+    """
     def expire_user(self):
         for user in self.users_dicc.keys():
             total_time = self.users_dicc[user][2]
             total_time += self.users_dicc[user][3]
-            if total_time < time.time():
+            if float(total_time) < time.time():
                 del self.users_dicc[user]
+    """
 
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
@@ -72,20 +74,23 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
         self.registrar_users(users_info)
         while 1:
             # Comprobamos si algun usuario ha expirado
-            self.expire_user()
+            # self.expire_user()
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
             line_decode = line.decode('utf-8')
             if line_decode:
                 request = line_decode.split(" ")
-                sip_user = request[1].split(':')[1]
-                Client_Port = int(request[1].split(':')[-1])
                 print("El cliente nos manda -- \r\n" + line_decode)
                 Metodo_rcv = line_decode.split(" ")[0]
                 if Metodo_rcv == "REGISTER":
                     if len(request) == 4:
+                        sip_user = request[1].split(':')[1]
                         expires = int(request[-1].split(':')[-1])
-                        print(expires)
+                        Client_Port = int(request[1].split(':')[-1])
+                        LogText = line_decode
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Receive', LogText, Client_IP, Client_Port)
                         if expires > 0:
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
                             Answer += "WWW Authenticate: nonce="
@@ -96,8 +101,19 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
                             # FALTA AGREGAR SDP
                             self.wfile.write(bytes(Answer, 'utf-8'))
+                        LogText = Answer
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, Client_Port)
+
                     else:
+                        Client_Port = int(request[1].split(':')[-1])
+                        sip_user = request[1].split(':')[1]
                         expires = int(request[3].split('\r\n')[0])
+                        LogText = line_decode
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Receive', LogText, Client_IP, Client_Port)
                         if expires > 0:
                             response = request[-1].split('=')[-1]
                             response = response.split('\r')[0]
@@ -119,20 +135,49 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                                 Answer += "WWW Authenticate: nonce="
                                 Answer += str(nonce) + "\r\n\r\n"
                                 self.wfile.write(bytes(Answer, 'utf-8'))
+
                         elif expires == 0:
                             del self.users_dicc[sip_user]
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
                             # FALTA AGREGAR SDP
                             self.wfile.write(bytes(Answer, 'utf-8'))
 
+                        LogText = Answer
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, Client_Port)
                         self.registered2file(sip_user)
 
                 elif Metodo_rcv == "INVITE":
-                    print(request)
-                    Answer = "SIP/2.0 100 Trying\r\n\r\n"
-                    Answer += "SIP/2.0 180 Ring\r\n\r\n"
-                    Answer += "SIP/2.0 200 OK\r\n\r\n"
-                    self.wfile.write(bytes(Answer, 'utf-8'))
+                    invited_user = request[1].split(':')[-1]
+                    if invited_user in self.users_dicc:
+                        UAS_IP = self.users_dicc[invited_user][0]
+                        UAS_PORT = self.users_dicc[invited_user][1]
+                        UAS_PORT = int(UAS_PORT)
+                        print('Reenviamos a...' + UAS_IP + ' - ' + str(UAS_PORT))
+                        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        my_socket.connect((UAS_IP, UAS_PORT))
+                        LogText = line_decode
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, UAS_IP, UAS_PORT)
+                        try:
+                            # Reenviamos al UAServer el INVITE
+                            my_socket.send(line)
+                            # Reenviamos al UAClient que realiza el INVITE
+                            data = my_socket.recv(1024)
+                            LogText = data.decode('utf-8')
+                            Text_List = LogText.split('\r\n')
+                            LogText = " ".join(Text_List)
+                            Log(LOG_FICH, 'Receive', LogText, self.client_address[0], int(self.client_address[1]))
+                            self.wfile.write(data)
+                            Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                        except socket.error:
+                            Error = "Error: No User Agent Server Listening"
+                            print(Error)
+                            self.wfile.write(Error)
+                        my_socket.close()
                 elif Metodo_rcv == "ACK":
                     """
                     aEjecutar = "./mp32rtp -i " + Client_IP
