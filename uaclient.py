@@ -91,10 +91,10 @@ if __name__ == "__main__":
         request += 'Expires: ' + Option + '\r\n'
     elif Metodo == "INVITE":
         request = Metodo + ' sip:' + Option + ' SIP/2.0\r\n'
-        description = 'v=0\r\no=' + NAME + ' ' + UAS_IP
-        description += '\r\ns=Avengers Sesion\r\nt=0\r\nm=audio '
-        description += str(RTP_PORT) + ' RTP\r\n'
-        request += 'Content-Type: application/sdp' + '\r\n\r\n' + description
+        SDP = 'v=0\r\no=' + NAME + ' ' + UAS_IP
+        SDP += '\r\ns=Avengers Sesion\r\nt=0\r\nm=audio '
+        SDP += str(RTP_PORT) + ' RTP\r\n'
+        request += 'Content-Type: application/sdp' + '\r\n\r\n' + SDP
     elif Metodo == "BYE":
         request = Metodo + ' sip:' + Option + ' SIP/2.0\r\n\r\n'
     else:
