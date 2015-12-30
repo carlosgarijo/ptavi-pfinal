@@ -1,0 +1,7 @@
+<?xml version= "1.0" encoding= "UTF-8" ?>
+
+    <config>
+        <server name="Avengers_Proxy" ip="" puerto="5001"/>
+        <database path="./database.txt" passwdpath="./passwords.txt"/>
+        <log path="./log_proxy.txt"/>
+    </config>
