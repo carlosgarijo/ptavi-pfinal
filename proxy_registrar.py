@@ -170,14 +170,22 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             LogText = data.decode('utf-8')
                             Text_List = LogText.split('\r\n')
                             LogText = " ".join(Text_List)
-                            Log(LOG_FICH, 'Receive', LogText, self.client_address[0], int(self.client_address[1]))
+                            Log(LOG_FICH, 'Receive', LogText, UAS_IP, UAS_PORT)
                             self.wfile.write(data)
                             Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
                         except socket.error:
                             Error = "Error: No User Agent Server Listening"
                             print(Error)
-                            self.wfile.write(Error)
+                            self.wfile.write(bytes(Error, 'utf-8'))
                         my_socket.close()
+                    else:
+                        Answer = "SIP/2.0 404 User Not Found\r\n"
+                        self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
+                        LogText = Answer
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
+
                 elif Metodo_rcv == "ACK":
                     invited_user = request[1].split(':')[-1]
                     UAS_IP = self.users_dicc[invited_user][0]
@@ -199,17 +207,57 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         print(Error)
                         self.wfile.write(Error)
                     my_socket.close()
-                    
                 elif Metodo_rcv == "BYE":
-                    Answer = "SIP/2.0 200 OK\r\n\r\n"
-                    self.wfile.write(bytes(Answer, 'utf-8'))
-                    print("Terminando conversación... ")
+                    invited_user = request[1].split(':')[-1]
+                    if invited_user in self.users_dicc:
+                        UAS_IP = self.users_dicc[invited_user][0]
+                        UAS_PORT = self.users_dicc[invited_user][1]
+                        UAS_PORT = int(UAS_PORT)
+                        print('Reenviamos a...' + UAS_IP + ' - ' + str(UAS_PORT))
+                        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        my_socket.connect((UAS_IP, UAS_PORT))
+                        LogText = line_decode
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, UAS_IP, UAS_PORT)
+                        try:
+                            # Reenviamos al UAServer el INVITE
+                            my_socket.send(line)
+                            # Reenviamos al UAClient que realiza el INVITE
+                            data = my_socket.recv(1024)
+                            LogText = data.decode('utf-8')
+                            Text_List = LogText.split('\r\n')
+                            LogText = " ".join(Text_List)
+                            Log(LOG_FICH, 'Receive', LogText, UAS_IP, UAS_PORT)
+                            self.wfile.write(data)
+                            Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                        except socket.error:
+                            Error = "Error: No User Agent Server Listening"
+                            print(Error)
+                            self.wfile.write(bytes(Error, 'utf-8'))
+                        my_socket.close()
+                    else:
+                        Answer = "SIP/2.0 404 User Not Found\r\n"
+                        self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
+                        LogText = Answer
+                        Text_List = LogText.split('\r\n')
+                        LogText = " ".join(Text_List)
+                        Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
                 elif Metodo_rcv != ("REGISTER", "INVITE", "ACK", "BYE"):
-                    Answer = "SIP/2.0 405 Method Not Allowed\r\n\r\n"
-                    self.wfile.write(bytes(Answer, 'utf-8'))
+                    Answer = "SIP/2.0 405 Method Not Allowed\r\n"
+                    self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
+                    LogText = Answer
+                    Text_List = LogText.split('\r\n')
+                    LogText = " ".join(Text_List)
+                    Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
                 else:
-                    Answer = "SIP/2.0 400 Bad Request\r\n\r\n"
-                    self.wfile.write(bytes(Answer, 'utf-8'))
+                    Answer = "SIP/2.0 400 Bad Request\r\n"
+                    self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
+                    LogText = Answer
+                    Text_List = LogText.split('\r\n')
+                    LogText = " ".join(Text_List)
+                    Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
