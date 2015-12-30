@@ -6,6 +6,7 @@ from xml.sax.handler import ContentHandler
 import sys
 import socketserver
 import time
+import os
 from uaclient import Get_Time
 from uaclient import Log
 from uaclient import SmallSMILHandler
@@ -14,6 +15,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
     """
     SIP server class
     """
+    RTP_info = {'ip': '', 'port': 0}
 
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
@@ -27,9 +29,13 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
             if line_decode:
                 request = line_decode.split(" ")
                 print("El cliente nos manda -- \r\n" + line_decode)
-                Metodo_rcv = line_decode.split(" ")[0]
+                Metodo_rcv = request[0]
                 if Metodo_rcv in Method_List:
                     if Metodo_rcv == "INVITE":
+                        RTP_IP_Send = request[4].split("\r\n")[0]
+                        RTP_PORT_Send = int(request[6])
+                        self.RTP_info['ip'] = RTP_IP_Send
+                        self.RTP_info['port'] = RTP_PORT_Send
                         Answer = "SIP/2.0 100 Trying\r\n\r\n"
                         Answer += "SIP/2.0 180 Ring\r\n\r\n"
                         Answer += "SIP/2.0 200 OK\r\n"
@@ -43,10 +49,12 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         LogText = " ".join(Text_List)
                         Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
                     elif Metodo_rcv == "ACK":
-                        aEjecutar = "./mp32rtp -i " + Client_IP
-                        aEjecutar += " -p 23032 < " + fichero_audio
+                        print("Enviamos audio a " + self.RTP_info['ip'] + "-" + str(self.RTP_info['port']))
+                        aEjecutar = "./mp32rtp -i " + self.RTP_info['ip']
+                        aEjecutar += " -p " + str(self.RTP_info['port']) + " < " + fichero_audio
                         print("Ejecutamos... ", aEjecutar)
                         os.system(aEjecutar)
+                        print("Envio finalizado")
                     elif Metodo_rcv == "BYE":
                         Answer = "SIP/2.0 200 OK\r\n\r\n"
                         self.wfile.write(bytes(Answer, 'utf-8'))
