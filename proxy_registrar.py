@@ -42,30 +42,28 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
     SIP Proxy server class
     """
     users_dicc = {}
+    users_pwrd = {}
 
     def registrar_users(self, users_info):
-        self.users_dicc = users_info
+        self.users_pwrd = users_info
 
 
     def registered2file(self, sip_user):
         fich = open(DATABASE_PATH, "w")
         line = "User\tIP\tPort\tRegister time\tExpires\r\n"
         for user in self.users_dicc.keys():
-            if user == sip_user:
-                line += user + "\t" + self.users_dicc[user][0] + "\t"
-                line += str(self.users_dicc[user][1]) + "\t"
-                line += str(self.users_dicc[user][2]) + "\t"
-                line += str(self.users_dicc[user][3]) + "\r\n"
+            line += user + "\t" + self.users_dicc[user][0] + "\t"
+            line += str(self.users_dicc[user][1]) + "\t"
+            line += str(self.users_dicc[user][2]) + "\t"
+            line += str(self.users_dicc[user][3]) + "\r\n"
         fich.write(line)
 
-    """
     def expire_user(self):
         for user in self.users_dicc.keys():
             total_time = self.users_dicc[user][2]
             total_time += self.users_dicc[user][3]
             if float(total_time) < time.time():
                 del self.users_dicc[user]
-    """
 
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
@@ -74,7 +72,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
         self.registrar_users(users_info)
         while 1:
             # Comprobamos si algun usuario ha expirado
-            # self.expire_user()
+            self.expire_user()
             # Leyendo línea a línea lo que nos envía el cliente
             line = self.rfile.read()
             line_decode = line.decode('utf-8')
@@ -99,7 +97,6 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         elif expires == 0:
                             del self.users_dicc[sip_user]
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
-                            # FALTA AGREGAR SDP
                             self.wfile.write(bytes(Answer, 'utf-8'))
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
@@ -118,15 +115,14 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             response = request[-1].split('=')[-1]
                             response = response.split('\r')[0]
                             m = hashlib.md5()
-                            for user in self.users_dicc.keys():
+                            for user in self.users_pwrd.keys():
                                 if user == sip_user:
-                                    password = self.users_dicc[user]
+                                    password = self.users_pwrd[user]
 
                             m.update(bytes(password, 'utf-8'))
                             m.update(bytes(str(nonce), 'utf-8'))
                             if m.hexdigest() == response:
                                 Answer = "SIP/2.0 200 OK\r\n\r\n"
-                                # FALTA AGREGAR SDP
                                 self.wfile.write(bytes(Answer, 'utf-8'))
                                 self.users_dicc[sip_user] = (Client_IP, Client_Port,
                                                              time.time(), float(expires))
@@ -139,14 +135,13 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         elif expires == 0:
                             del self.users_dicc[sip_user]
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
-                            # FALTA AGREGAR SDP
                             self.wfile.write(bytes(Answer, 'utf-8'))
 
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
                         Log(LOG_FICH, 'Send', LogText, Client_IP, Client_Port)
-                        self.registered2file(sip_user)
+                    self.registered2file(sip_user)
 
                 elif Metodo_rcv == "INVITE":
                     invited_user = request[1].split(':')[-1]
@@ -292,8 +287,10 @@ if __name__ == "__main__":
             users_info[help_line[0]] = help_line[-1]
 
     try:
+        Log(LOG_FICH, 'Start', '', PR_IP, PR_PORT)
         serv = socketserver.UDPServer(("", PR_PORT), SIPProxyHandler)
         print("Server " + NAME + " listening at port " + str(PR_PORT))
         serv.serve_forever()
     except KeyboardInterrupt:
+        Log(LOG_FICH, 'Finish', '', PR_IP, PR_PORT)
         sys.exit("Apagando Proxy...")
