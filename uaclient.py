@@ -17,6 +17,7 @@ def Get_Time():
 
     return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time()))
 
+
 def Log(fich, mode, text, Ip, Port):
     """
     Escribe en un fichero de log en modo APPEND
@@ -36,6 +37,7 @@ def Log(fich, mode, text, Ip, Port):
     elif mode == 'Error':
         txt.write(Get_Time() + ' ' + text + '\r\n')
     txt.close()
+
 
 class SmallSMILHandler(ContentHandler):
 
@@ -63,7 +65,7 @@ class SmallSMILHandler(ContentHandler):
 if __name__ == "__main__":
 # Cliente UDP simple.
     try:
-        (_,Fich_Config, Metodo, Option) = sys.argv
+        (_, Fich_Config, Metodo, Option) = sys.argv
         Metodo = Metodo.upper()
     except:
         sys.exit("Usage: python3 uaclient.py config method option")
