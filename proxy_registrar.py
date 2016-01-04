@@ -16,6 +16,7 @@ from uaclient import Log
 from xml.sax import make_parser
 from xml.sax.handler import ContentHandler
 
+
 class XMLHandler(ContentHandler):
     """
     Handler para leer la configuración en XMLHandler
@@ -37,6 +38,7 @@ class XMLHandler(ContentHandler):
     def get_tags(self):
         return self.tag
 
+
 class SIPProxyHandler(socketserver.DatagramRequestHandler):
     """
     SIP Proxy server class
@@ -46,7 +48,6 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
 
     def registrar_users(self, users_info):
         self.users_pwrd = users_info
-
 
     def registered2file(self, sip_user):
         fich = open(DATABASE_PATH, "w")
@@ -88,7 +89,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         LogText = line_decode
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Receive', LogText, Client_IP, Client_Port)
+                        Log(LOG_FICH, 'Receive', LogText,
+                            Client_IP, Client_Port)
                         if expires > 0:
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
                             Answer += "WWW Authenticate: nonce="
@@ -104,37 +106,33 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         Log(LOG_FICH, 'Send', LogText, Client_IP, Client_Port)
 
                     else:
-                        Client_Port = int(request[1].split(':')[-1])
+                        C_Port = int(request[1].split(':')[-1])
                         sip_user = request[1].split(':')[1]
                         expires = int(request[3].split('\r\n')[0])
+                        expires = float(expires)
                         LogText = line_decode
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Receive', LogText, Client_IP, Client_Port)
-                        if expires > 0:
-                            response = request[-1].split('=')[-1]
-                            response = response.split('\r')[0]
-                            m = hashlib.md5()
-                            for user in self.users_pwrd.keys():
-                                if user == sip_user:
-                                    password = self.users_pwrd[user]
+                        Log(LOG_FICH, 'Receive', LogText,
+                            Client_IP, C_Port)
+                        response = request[-1].split('=')[-1]
+                        response = response.split('\r')[0]
+                        m = hashlib.md5()
+                        for user in self.users_pwrd.keys():
+                            if user == sip_user:
+                                password = self.users_pwrd[user]
 
-                            m.update(bytes(password, 'utf-8'))
-                            m.update(bytes(str(nonce), 'utf-8'))
-                            if m.hexdigest() == response:
-                                Answer = "SIP/2.0 200 OK\r\n\r\n"
-                                self.wfile.write(bytes(Answer, 'utf-8'))
-                                self.users_dicc[sip_user] = (Client_IP, Client_Port,
-                                                             time.time(), float(expires))
-                            else:
-                                Answer = "SIP/2.0 401 Unauthorized\r\n"
-                                Answer += "WWW Authenticate: nonce="
-                                Answer += str(nonce) + "\r\n\r\n"
-                                self.wfile.write(bytes(Answer, 'utf-8'))
-
-                        elif expires == 0:
-                            del self.users_dicc[sip_user]
+                        m.update(bytes(password, 'utf-8'))
+                        m.update(bytes(str(nonce), 'utf-8'))
+                        if m.hexdigest() == response:
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
+                            self.wfile.write(bytes(Answer, 'utf-8'))
+                            self.users_dicc[sip_user] = (Client_IP, C_Port,
+                                                         time.time(), expires)
+                        else:
+                            Answer = "SIP/2.0 401 Unauthorized\r\n"
+                            Answer += "WWW Authenticate: nonce="
+                            Answer += str(nonce) + "\r\n\r\n"
                             self.wfile.write(bytes(Answer, 'utf-8'))
 
                         LogText = Answer
@@ -149,9 +147,12 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         UAS_IP = self.users_dicc[invited_user][0]
                         UAS_PORT = self.users_dicc[invited_user][1]
                         UAS_PORT = int(UAS_PORT)
-                        print('Reenviamos a...' + UAS_IP + ' - ' + str(UAS_PORT))
-                        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        print('Reenviamos a...' + UAS_IP +
+                              ' - ' + str(UAS_PORT))
+                        my_socket = socket.socket(socket.AF_INET,
+                                                  socket.SOCK_DGRAM)
+                        my_socket.setsockopt(socket.SOL_SOCKET,
+                                             socket.SO_REUSEADDR, 1)
                         my_socket.connect((UAS_IP, UAS_PORT))
                         LogText = line_decode
                         Text_List = LogText.split('\r\n')
@@ -167,7 +168,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             LogText = " ".join(Text_List)
                             Log(LOG_FICH, 'Receive', LogText, UAS_IP, UAS_PORT)
                             self.wfile.write(data)
-                            Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                            Log(LOG_FICH, 'Send', LogText, Client_IP,
+                                int(self.client_address[1]))
                         except socket.error:
                             Error = "Error: No User Agent Server Listening"
                             print(Error)
@@ -179,7 +181,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText, self.client_address[0],
+                            int(self.client_address[1]))
 
                 elif Metodo_rcv == "ACK":
                     invited_user = request[1].split(':')[-1]
@@ -187,8 +190,10 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                     UAS_PORT = self.users_dicc[invited_user][1]
                     UAS_PORT = int(UAS_PORT)
                     print('Reenviamos a...' + UAS_IP + ' - ' + str(UAS_PORT))
-                    my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                    my_socket = socket.socket(socket.AF_INET,
+                                              socket.SOCK_DGRAM)
+                    my_socket.setsockopt(socket.SOL_SOCKET,
+                                         socket.SO_REUSEADDR, 1)
                     my_socket.connect((UAS_IP, UAS_PORT))
                     try:
                         # Reenviamos al UAServer el INVITE
@@ -208,9 +213,12 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         UAS_IP = self.users_dicc[invited_user][0]
                         UAS_PORT = self.users_dicc[invited_user][1]
                         UAS_PORT = int(UAS_PORT)
-                        print('Reenviamos a...' + UAS_IP + ' - ' + str(UAS_PORT))
-                        my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                        my_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                        print('Reenviamos a...' + UAS_IP +
+                              ' - ' + str(UAS_PORT))
+                        my_socket = socket.socket(socket.AF_INET,
+                                                  socket.SOCK_DGRAM)
+                        my_socket.setsockopt(socket.SOL_SOCKET,
+                                             socket.SO_REUSEADDR, 1)
                         my_socket.connect((UAS_IP, UAS_PORT))
                         LogText = line_decode
                         Text_List = LogText.split('\r\n')
@@ -226,7 +234,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             LogText = " ".join(Text_List)
                             Log(LOG_FICH, 'Receive', LogText, UAS_IP, UAS_PORT)
                             self.wfile.write(data)
-                            Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                            Log(LOG_FICH, 'Send', LogText, Client_IP,
+                                int(self.client_address[1]))
                         except socket.error:
                             Error = "Error: No User Agent Server Listening"
                             print(Error)
@@ -238,30 +247,33 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText, self.client_address[0],
+                            int(self.client_address[1]))
                 elif Metodo_rcv != ("REGISTER", "INVITE", "ACK", "BYE"):
                     Answer = "SIP/2.0 405 Method Not Allowed\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
                     LogText = " ".join(Text_List)
-                    Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
+                    Log(LOG_FICH, 'Send', LogText, self.client_address[0],
+                        int(self.client_address[1]))
                 else:
                     Answer = "SIP/2.0 400 Bad Request\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
                     LogText = " ".join(Text_List)
-                    Log(LOG_FICH, 'Send', LogText, self.client_address[0], int(self.client_address[1]))
+                    Log(LOG_FICH, 'Send', LogText, self.client_address[0],
+                        int(self.client_address[1]))
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
 
 if __name__ == "__main__":
     try:
-        (_,Fich_Config) = sys.argv
+        (_, Fich_Config) = sys.argv
     except:
-        sys,exit("Usage: python3 proxy_registrar.py config")
+        sys.exit("Usage: python3 proxy_registrar.py config")
 
     parser = make_parser()
     Handler = XMLHandler()
