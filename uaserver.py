@@ -11,6 +11,7 @@ from uaclient import Get_Time
 from uaclient import Log
 from uaclient import SmallSMILHandler
 
+
 class SIPServerHandler(socketserver.DatagramRequestHandler):
     """
     SIP server class
@@ -32,7 +33,8 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                 LogText = line_decode
                 Text_List = LogText.split('\r\n')
                 LogText = " ".join(Text_List)
-                Log(LOG_FICH, 'Receive', LogText, Client_IP, int(self.client_address[1]))
+                Log(LOG_FICH, 'Receive', LogText,
+                    Client_IP, int(self.client_address[1]))
                 Metodo_rcv = request[0]
                 if Metodo_rcv in Method_List:
                     if Metodo_rcv == "INVITE":
@@ -46,16 +48,20 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         SDP = 'v=0\r\no=' + NAME + ' ' + UAS_IP
                         SDP += '\r\ns=Avengers Sesion\r\nt=0\r\nm=audio '
                         SDP += str(RTP_PORT) + ' RTP\r\n\r\n'
-                        Answer += 'Content-Type: application/sdp' + '\r\n\r\n' + SDP
+                        Answer += 'Content-Type: application/sdp'
+                        Answer += '\r\n\r\n' + SDP
                         self.wfile.write(bytes(Answer, 'utf-8'))
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText,
+                            Client_IP, int(self.client_address[1]))
                     elif Metodo_rcv == "ACK":
-                        print("Enviamos audio a " + self.RTP_info['ip'] + "-" + str(self.RTP_info['port']))
+                        print("Enviamos audio a " + self.RTP_info['ip'] +
+                              "-" + str(self.RTP_info['port']))
                         aEjecutar = "./mp32rtp -i " + self.RTP_info['ip']
-                        aEjecutar += " -p " + str(self.RTP_info['port']) + " < " + fichero_audio
+                        aEjecutar += " -p " + str(self.RTP_info['port'])
+                        aEjecutar += " < " + fichero_audio
                         print("Ejecutamos... ", aEjecutar)
                         os.system(aEjecutar)
                         print("Envio finalizado")
@@ -65,7 +71,8 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText,
+                            Client_IP, int(self.client_address[1]))
                         print("Terminando conversación... ")
                     elif Metodo_rcv != ("INVITE", "ACK", "BYE"):
                         Answer = "SIP/2.0 405 Method Not Allowed\r\n"
@@ -73,14 +80,16 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText,
+                            Client_IP, int(self.client_address[1]))
                 else:
                     Answer = "SIP/2.0 400 Bad Request\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
                     LogText = " ".join(Text_List)
-                    Log(LOG_FICH, 'Send', LogText, Client_IP, int(self.client_address[1]))
+                    Log(LOG_FICH, 'Send', LogText,
+                        Client_IP, int(self.client_address[1]))
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
@@ -88,7 +97,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
 if __name__ == "__main__":
 # Cliente UDP simple.
     try:
-        (_,Fich_Config) = sys.argv
+        (_, Fich_Config) = sys.argv
     except:
         sys.exit("Usage: python3 uaserver.py config")
 
