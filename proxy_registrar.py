@@ -138,7 +138,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, Client_IP, Client_Port)
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                     self.registered2file(sip_user)
 
                 elif Metodo_rcv == "INVITE":
