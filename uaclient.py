@@ -89,6 +89,7 @@ if __name__ == "__main__":
     LOG_FICH = Dicc[4][1]['path']
     SONG = Dicc[5][1]['path']
 
+    # Creamos la petición según el método que hemos introducido
     if Metodo == "REGISTER":
         request = Metodo + ' sip:' + NAME + ':' + UAS_PORT + ' SIP/2.0\r\n'
         request += 'Expires: ' + Option + '\r\n'
@@ -117,7 +118,9 @@ if __name__ == "__main__":
 
     try:
         request_encoded = request.encode('utf-8')
+        # Enviamos la petición
         my_socket.send(request_encoded + b'\r\n')
+        # Recibimos respuesta
         Answer = my_socket.recv(1024)
     except socket.error:
         LogText = 'Error: No server listening at ' + PR_IP + ' port ' + PR_PORT
@@ -133,6 +136,7 @@ if __name__ == "__main__":
     Answer_list = Answer_decode.split("\r\n")
     Answer_list.pop()
     if Answer_list[0] == "SIP/2.0 401 Unauthorized":
+        # Creamos el response con la password y el nonce del proxy_registrar
         m = hashlib.md5()
         nonce = Answer_list[1].split("=")[-1]
         m.update(bytes(PSSWRD, 'utf-8'))
@@ -146,6 +150,7 @@ if __name__ == "__main__":
         LogText = " ".join(Text_List)
         Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
     elif Answer_list[0] == "SIP/2.0 100 Trying":
+        # Enviamos un ACK despues del INVITE
         Metodo = "ACK"
         line = Metodo + " sip:" + Option + " SIP/2.0\r\n\r\n"
         print("Enviando: \r\n" + line)
