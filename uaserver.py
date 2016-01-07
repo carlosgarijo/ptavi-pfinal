@@ -42,6 +42,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         RTP_PORT_Send = int(request[6])
                         self.RTP_info['ip'] = RTP_IP_Send
                         self.RTP_info['port'] = RTP_PORT_Send
+                        # Creamos respuesta
                         Answer = "SIP/2.0 100 Trying\r\n\r\n"
                         Answer += "SIP/2.0 180 Ring\r\n\r\n"
                         Answer += "SIP/2.0 200 OK\r\n"
@@ -57,6 +58,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         Log(LOG_FICH, 'Send', LogText,
                             Client_IP, int(self.client_address[1]))
                     elif Metodo_rcv == "ACK":
+                        # Enviamos audio
                         print("Enviamos audio a " + self.RTP_info['ip'] +
                               "-" + str(self.RTP_info['port']))
                         aEjecutar = "./mp32rtp -i " + self.RTP_info['ip']
@@ -66,6 +68,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         os.system(aEjecutar)
                         print("Envio finalizado")
                     elif Metodo_rcv == "BYE":
+                        # Enviamos respuesta
                         Answer = "SIP/2.0 200 OK\r\n"
                         self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                         LogText = Answer
@@ -95,7 +98,6 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                 break
 
 if __name__ == "__main__":
-# Cliente UDP simple.
     try:
         (_, Fich_Config) = sys.argv
     except:
