@@ -123,10 +123,10 @@ if __name__ == "__main__":
     LOG_FICH = Dicc[4][1]['path']
     SONG = Dicc[5][1]['path']
     try:
-        Log(LOG_FICH, 'Start', '', PR_IP, PR_PORT)
+        Log(LOG_FICH, 'Start', '', UAS_IP, UAS_PORT)
         serv = socketserver.UDPServer(("", UAS_PORT), SIPServerHandler)
         print("Listening...")
         serv.serve_forever()
     except KeyboardInterrupt:
-        Log(LOG_FICH, 'Finish', '', PR_IP, PR_PORT)
+        Log(LOG_FICH, 'Finish', '', UAS_IP, UAS_PORT)
         sys.exit("Apagando uaserver...")
