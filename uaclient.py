@@ -15,7 +15,7 @@ def Get_Time():
     Devuelve la hora actual en formato Año-Mes-Día-Horas-Minutos-Segundos
     """
 
-    return time.strftime('%Y-%m-%d %H:%M:%S', time.gmtime(time.time()))
+    return time.strftime('%Y%m%d%H%M%S', time.gmtime(time.time()))
 
 
 def Log(fich, mode, text, Ip, Port):
@@ -149,6 +149,9 @@ if __name__ == "__main__":
         Text_List = LogText.split('\r\n')
         LogText = " ".join(Text_List)
         Log(LOG_FICH, 'Send', LogText, PR_IP, PR_PORT)
+        Answer = my_socket.recv(1024)
+        Answer_decode = Answer.decode('utf-8')
+        print("Recibimos: \r\n" + Answer_decode)
     elif Answer_list[0] == "SIP/2.0 100 Trying":
         # Enviamos un ACK despues del INVITE
         Metodo = "ACK"
@@ -170,9 +173,8 @@ if __name__ == "__main__":
         print("Envio finalizado")
     elif Answer_list[0] == "SIP/2.0 200 OK":
         Log(LOG_FICH, 'Finish', '', PR_IP, PR_PORT)
-
-    print("Terminando socket...")
+        print("Terminando socket...")
+        print("Fin.")
 
     # Cerramos todo
     my_socket.close()
-    print("Fin.")
