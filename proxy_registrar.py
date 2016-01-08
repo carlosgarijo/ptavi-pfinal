@@ -46,12 +46,17 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
     users_dicc = {}
     users_pwrd = {}
 
-    def registrar_users(self, users_info):
+    def registrar_users(self, users_info, reg_users):
         self.users_pwrd = users_info
+        self.users_dicc = reg_users
 
     def registered2file(self, sip_user):
+        """
+        Escribimos el fichero Database
+        """
         fich = open(DATABASE_PATH, "w")
-        line = "User\tIP\tPort\tRegister time\tExpires\r\n"
+        #line = "User\tIP\tPort\tRegister time\tExpires\r\n"
+        line = "Database:\n"
         for user in self.users_dicc.keys():
             line += user + "\t" + self.users_dicc[user][0] + "\t"
             line += str(self.users_dicc[user][1]) + "\t"
@@ -60,6 +65,9 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
         fich.write(line)
 
     def expire_user(self):
+        """
+        Comprobamos si algun usuario ha expirado
+        """
         for user in self.users_dicc.keys():
             total_time = self.users_dicc[user][2]
             total_time += self.users_dicc[user][3]
@@ -70,7 +78,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
         # Escribe dirección y puerto del cliente (de tupla client_address)
         Client_IP = str(self.client_address[0])
         nonce = 1705201402032012
-        self.registrar_users(users_info)
+        self.registrar_users(users_info, reg_users)
+        print(self.users_dicc)
         while 1:
             # Comprobamos si algun usuario ha expirado
             self.expire_user()
@@ -91,12 +100,14 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         LogText = " ".join(Text_List)
                         Log(LOG_FICH, 'Receive', LogText,
                             Client_IP, Client_Port)
+                        # Miramos el Expires
                         if expires > 0:
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
                             Answer += "WWW Authenticate: nonce="
                             Answer += str(nonce) + "\r\n\r\n"
                             self.wfile.write(bytes(Answer, 'utf-8'))
                         elif expires == 0:
+                            # Borramos
                             del self.users_dicc[sip_user]
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
                             self.wfile.write(bytes(Answer, 'utf-8'))
@@ -106,6 +117,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         Log(LOG_FICH, 'Send', LogText, Client_IP, Client_Port)
 
                     else:
+                        # Comprobamos el response del cliente con el
+                        # del proxy_registrar
                         C_Port = int(request[1].split(':')[-1])
                         sip_user = request[1].split(':')[1]
                         expires = int(request[3].split('\r\n')[0])
@@ -139,6 +152,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
                         Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
+                    # Registramos al usuario
                     self.registered2file(sip_user)
 
                 elif Metodo_rcv == "INVITE":
@@ -297,6 +311,20 @@ if __name__ == "__main__":
         for linea in lineas:
             help_line = linea[0].split(':')
             users_info[help_line[0]] = help_line[-1]
+
+    # Cogemos usuarios del path Database
+    with open(DATABASE_PATH, newline='') as database_fich:
+        lineas = csv.reader(database_fich)
+        reg_users = {}
+        for linea in lineas:
+            help_line = linea[0].split('\t')
+            if len(help_line) > 1:
+                user = help_line[0]
+                C_IP = help_line[1]
+                C_Port = help_line[2]
+                time_reg = float(help_line[3])
+                expires = float(help_line[4].split('\n')[0])
+                reg_users[user] = (C_IP, C_Port, time_reg, expires)
 
     try:
         Log(LOG_FICH, 'Start', '', PR_IP, PR_PORT)
