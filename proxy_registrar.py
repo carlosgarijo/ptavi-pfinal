@@ -50,7 +50,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
         self.users_pwrd = users_info
         self.users_dicc = reg_users
 
-    def registered2file(self, sip_user):
+    def registered2file(self):
         """
         Escribimos el fichero Database
         """
@@ -153,7 +153,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         LogText = " ".join(Text_List)
                         Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                     # Registramos al usuario
-                    self.registered2file(sip_user)
+                    self.registered2file()
 
                 elif Metodo_rcv == "INVITE":
                     invited_user = request[1].split(':')[-1]
