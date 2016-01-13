@@ -46,9 +46,8 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
     users_dicc = {}
     users_pwrd = {}
 
-    def registrar_users(self, users_info, reg_users):
+    def registrar_users(self, users_info):
         self.users_pwrd = users_info
-        self.users_dicc = reg_users
 
     def registered2file(self):
         """
@@ -74,12 +73,39 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
             if float(total_time) < time.time():
                 del self.users_dicc[user]
 
+    def reenvio(self, UAS_IP, UAS_PORT, line, Client_IP, C_Port):
+        my_socket = socket.socket(socket.AF_INET,
+                                  socket.SOCK_DGRAM)
+        my_socket.setsockopt(socket.SOL_SOCKET,
+                             socket.SO_REUSEADDR, 1)
+        my_socket.connect((UAS_IP, UAS_PORT))
+        LogText = line.decode('utf-8')
+        Text_List = LogText.split('\r\n')
+        LogText = " ".join(Text_List)
+        Log(LOG_FICH, 'Send', LogText, UAS_IP, UAS_PORT)
+        try:
+            # Reenviamos al UAServer el INVITE
+            my_socket.send(line)
+            # Reenviamos al UAClient que realiza el INVITE
+            data = my_socket.recv(1024)
+            LogText = data.decode('utf-8')
+            Text_List = LogText.split('\r\n')
+            LogText = " ".join(Text_List)
+            Log(LOG_FICH, 'Receive', LogText, UAS_IP, UAS_PORT)
+            self.wfile.write(data)
+            Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
+        except socket.error:
+            Error = "Error: No User Agent Server Listening"
+            print(Error)
+            self.wfile.write(bytes(Error, 'utf-8'))
+        my_socket.close()
+
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
         Client_IP = str(self.client_address[0])
+        C_Port = int(self.client_address[1])
         nonce = 1705201402032012
-        self.registrar_users(users_info, reg_users)
-        print(self.users_dicc)
+        self.registrar_users(users_info)
         while 1:
             # Comprobamos si algun usuario ha expirado
             self.expire_user()
@@ -119,7 +145,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                     else:
                         # Comprobamos el response del cliente con el
                         # del proxy_registrar
-                        C_Port = int(request[1].split(':')[-1])
+                        C_Port_Rsp = int(request[1].split(':')[-1])
                         sip_user = request[1].split(':')[1]
                         expires = int(request[3].split('\r\n')[0])
                         expires = float(expires)
@@ -127,7 +153,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
                         Log(LOG_FICH, 'Receive', LogText,
-                            Client_IP, C_Port)
+                            Client_IP, C_Port_Rsp)
                         response = request[-1].split('=')[-1]
                         response = response.split('\r')[0]
                         m = hashlib.md5()
@@ -140,7 +166,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         if m.hexdigest() == response:
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
                             self.wfile.write(bytes(Answer, 'utf-8'))
-                            self.users_dicc[sip_user] = (Client_IP, C_Port,
+                            self.users_dicc[sip_user] = (Client_IP, C_Port_Rsp,
                                                          time.time(), expires)
                         else:
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
@@ -151,7 +177,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port_Rsp)
                     # Registramos al usuario
                     self.registered2file()
 
@@ -163,40 +189,14 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         UAS_PORT = int(UAS_PORT)
                         print('Reenviamos a...' + UAS_IP +
                               ' - ' + str(UAS_PORT))
-                        my_socket = socket.socket(socket.AF_INET,
-                                                  socket.SOCK_DGRAM)
-                        my_socket.setsockopt(socket.SOL_SOCKET,
-                                             socket.SO_REUSEADDR, 1)
-                        my_socket.connect((UAS_IP, UAS_PORT))
-                        LogText = line_decode
-                        Text_List = LogText.split('\r\n')
-                        LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, UAS_IP, UAS_PORT)
-                        try:
-                            # Reenviamos al UAServer el INVITE
-                            my_socket.send(line)
-                            # Reenviamos al UAClient que realiza el INVITE
-                            data = my_socket.recv(1024)
-                            LogText = data.decode('utf-8')
-                            Text_List = LogText.split('\r\n')
-                            LogText = " ".join(Text_List)
-                            Log(LOG_FICH, 'Receive', LogText, UAS_IP, UAS_PORT)
-                            self.wfile.write(data)
-                            Log(LOG_FICH, 'Send', LogText, Client_IP,
-                                int(self.client_address[1]))
-                        except socket.error:
-                            Error = "Error: No User Agent Server Listening"
-                            print(Error)
-                            self.wfile.write(bytes(Error, 'utf-8'))
-                        my_socket.close()
+                        self.reenvio(UAS_IP, UAS_PORT, line, Client_IP, C_Port)
                     else:
                         Answer = "SIP/2.0 404 User Not Found\r\n"
                         self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, self.client_address[0],
-                            int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
 
                 elif Metodo_rcv == "ACK":
                     invited_user = request[1].split(':')[-1]
@@ -204,23 +204,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                     UAS_PORT = self.users_dicc[invited_user][1]
                     UAS_PORT = int(UAS_PORT)
                     print('Reenviamos a...' + UAS_IP + ' - ' + str(UAS_PORT))
-                    my_socket = socket.socket(socket.AF_INET,
-                                              socket.SOCK_DGRAM)
-                    my_socket.setsockopt(socket.SOL_SOCKET,
-                                         socket.SO_REUSEADDR, 1)
-                    my_socket.connect((UAS_IP, UAS_PORT))
-                    try:
-                        # Reenviamos al UAServer el INVITE
-                        my_socket.send(line)
-                        LogText = line_decode
-                        Text_List = LogText.split('\r\n')
-                        LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, UAS_IP, UAS_PORT)
-                    except socket.error:
-                        Error = "Error: No User Agent Server Listening"
-                        print(Error)
-                        self.wfile.write(Error)
-                    my_socket.close()
+                    self.reenvio(UAS_IP, UAS_PORT, line, Client_IP, C_Port)
                 elif Metodo_rcv == "BYE":
                     invited_user = request[1].split(':')[-1]
                     if invited_user in self.users_dicc:
@@ -229,56 +213,28 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         UAS_PORT = int(UAS_PORT)
                         print('Reenviamos a...' + UAS_IP +
                               ' - ' + str(UAS_PORT))
-                        my_socket = socket.socket(socket.AF_INET,
-                                                  socket.SOCK_DGRAM)
-                        my_socket.setsockopt(socket.SOL_SOCKET,
-                                             socket.SO_REUSEADDR, 1)
-                        my_socket.connect((UAS_IP, UAS_PORT))
-                        LogText = line_decode
-                        Text_List = LogText.split('\r\n')
-                        LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, UAS_IP, UAS_PORT)
-                        try:
-                            # Reenviamos al UAServer el INVITE
-                            my_socket.send(line)
-                            # Reenviamos al UAClient que realiza el INVITE
-                            data = my_socket.recv(1024)
-                            LogText = data.decode('utf-8')
-                            Text_List = LogText.split('\r\n')
-                            LogText = " ".join(Text_List)
-                            Log(LOG_FICH, 'Receive', LogText, UAS_IP, UAS_PORT)
-                            self.wfile.write(data)
-                            Log(LOG_FICH, 'Send', LogText, Client_IP,
-                                int(self.client_address[1]))
-                        except socket.error:
-                            Error = "Error: No User Agent Server Listening"
-                            print(Error)
-                            self.wfile.write(bytes(Error, 'utf-8'))
-                        my_socket.close()
+                        self.reenvio(UAS_IP, UAS_PORT, line, Client_IP, C_Port)
                     else:
                         Answer = "SIP/2.0 404 User Not Found\r\n"
                         self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText, self.client_address[0],
-                            int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                 elif Metodo_rcv != ("REGISTER", "INVITE", "ACK", "BYE"):
                     Answer = "SIP/2.0 405 Method Not Allowed\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
                     LogText = " ".join(Text_List)
-                    Log(LOG_FICH, 'Send', LogText, self.client_address[0],
-                        int(self.client_address[1]))
+                    Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                 else:
                     Answer = "SIP/2.0 400 Bad Request\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
                     LogText = " ".join(Text_List)
-                    Log(LOG_FICH, 'Send', LogText, self.client_address[0],
-                        int(self.client_address[1]))
+                    Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
@@ -311,20 +267,6 @@ if __name__ == "__main__":
         for linea in lineas:
             help_line = linea[0].split(':')
             users_info[help_line[0]] = help_line[-1]
-
-    # Cogemos usuarios del path Database
-    with open(DATABASE_PATH, newline='') as database_fich:
-        lineas = csv.reader(database_fich)
-        reg_users = {}
-        for linea in lineas:
-            help_line = linea[0].split('\t')
-            if len(help_line) > 1:
-                user = help_line[0]
-                C_IP = help_line[1]
-                C_Port = help_line[2]
-                time_reg = float(help_line[3])
-                expires = float(help_line[4].split('\n')[0])
-                reg_users[user] = (C_IP, C_Port, time_reg, expires)
 
     try:
         Log(LOG_FICH, 'Start', '', PR_IP, PR_PORT)
