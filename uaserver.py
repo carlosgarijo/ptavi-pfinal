@@ -21,6 +21,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
     def handle(self):
         # Escribe dirección y puerto del cliente (de tupla client_address)
         Client_IP = str(self.client_address[0])
+        C_Port = int(self.client_address[1])
         fichero_audio = SONG
         Method_List = ['INVITE', 'ACK', 'BYE']
         while 1:
@@ -33,8 +34,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                 LogText = line_decode
                 Text_List = LogText.split('\r\n')
                 LogText = " ".join(Text_List)
-                Log(LOG_FICH, 'Receive', LogText,
-                    Client_IP, int(self.client_address[1]))
+                Log(LOG_FICH, 'Receive', LogText, Client_IP, C_Port)
                 Metodo_rcv = request[0]
                 if Metodo_rcv in Method_List:
                     if Metodo_rcv == "INVITE":
@@ -55,8 +55,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText,
-                            Client_IP, int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                     elif Metodo_rcv == "ACK":
                         # Enviamos audio
                         print("Enviamos audio a " + self.RTP_info['ip'] +
@@ -74,8 +73,7 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText,
-                            Client_IP, int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                         print("Terminando conversación... ")
                     elif Metodo_rcv != ("INVITE", "ACK", "BYE"):
                         Answer = "SIP/2.0 405 Method Not Allowed\r\n"
@@ -83,16 +81,14 @@ class SIPServerHandler(socketserver.DatagramRequestHandler):
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
                         LogText = " ".join(Text_List)
-                        Log(LOG_FICH, 'Send', LogText,
-                            Client_IP, int(self.client_address[1]))
+                        Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                 else:
                     Answer = "SIP/2.0 400 Bad Request\r\n"
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
                     LogText = " ".join(Text_List)
-                    Log(LOG_FICH, 'Send', LogText,
-                        Client_IP, int(self.client_address[1]))
+                    Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
             # Si no hay más líneas salimos del bucle infinito
             if not line:
                 break
