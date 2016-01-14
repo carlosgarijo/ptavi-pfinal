@@ -129,7 +129,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         # Miramos el Expires
                         if expires > 0:
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
-                            Answer += "WWW Authenticate: nonce="
+                            Answer += "WWW Authenticate: Digest nonce="
                             Answer += str(nonce) + "\r\n\r\n"
                             print("Enviamos -- \r\n" + Answer)
                             self.wfile.write(bytes(Answer, 'utf-8'))
