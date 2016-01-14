@@ -141,7 +141,7 @@ if __name__ == "__main__":
         nonce = Answer_list[1].split("=")[-1]
         m.update(bytes(PSSWRD, 'utf-8'))
         m.update(bytes(nonce, 'utf-8'))
-        request += "Authorization: response=" + m.hexdigest() + "\r\n"
+        request += "Authorization: Digest response=" + m.hexdigest() + "\r\n"
         request_encoded = request.encode('utf-8')
         my_socket.send(request_encoded + b'\r\n')
         print("Enviando: \r\n" + request)
