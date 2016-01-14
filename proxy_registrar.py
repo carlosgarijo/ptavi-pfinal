@@ -131,11 +131,13 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
                             Answer += "WWW Authenticate: nonce="
                             Answer += str(nonce) + "\r\n\r\n"
+                            print("Enviamos -- \r\n" + Answer)
                             self.wfile.write(bytes(Answer, 'utf-8'))
                         elif expires == 0:
                             # Borramos
                             del self.users_dicc[sip_user]
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
+                            print("Enviamos -- \r\n" + Answer)
                             self.wfile.write(bytes(Answer, 'utf-8'))
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
@@ -165,6 +167,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         m.update(bytes(str(nonce), 'utf-8'))
                         if m.hexdigest() == response:
                             Answer = "SIP/2.0 200 OK\r\n\r\n"
+                            print("Enviamos -- \r\n" + Answer)
                             self.wfile.write(bytes(Answer, 'utf-8'))
                             self.users_dicc[sip_user] = (Client_IP, C_Port_Rsp,
                                                          time.time(), expires)
@@ -172,6 +175,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                             Answer = "SIP/2.0 401 Unauthorized\r\n"
                             Answer += "WWW Authenticate: nonce="
                             Answer += str(nonce) + "\r\n\r\n"
+                            print("Enviamos -- \r\n" + Answer)
                             self.wfile.write(bytes(Answer, 'utf-8'))
 
                         LogText = Answer
@@ -192,6 +196,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         self.reenvio(UAS_IP, UAS_PORT, line, Client_IP, C_Port)
                     else:
                         Answer = "SIP/2.0 404 User Not Found\r\n"
+                        print("Enviamos -- \r\n" + Answer)
                         self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
@@ -216,6 +221,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         self.reenvio(UAS_IP, UAS_PORT, line, Client_IP, C_Port)
                     else:
                         Answer = "SIP/2.0 404 User Not Found\r\n"
+                        print("Enviamos -- \r\n" + Answer)
                         self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                         LogText = Answer
                         Text_List = LogText.split('\r\n')
@@ -223,6 +229,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                         Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                 elif Metodo_rcv != ("REGISTER", "INVITE", "ACK", "BYE"):
                     Answer = "SIP/2.0 405 Method Not Allowed\r\n"
+                    print("Enviamos -- \r\n" + Answer)
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
@@ -230,6 +237,7 @@ class SIPProxyHandler(socketserver.DatagramRequestHandler):
                     Log(LOG_FICH, 'Send', LogText, Client_IP, C_Port)
                 else:
                     Answer = "SIP/2.0 400 Bad Request\r\n"
+                    print("Enviamos -- \r\n" + Answer)
                     self.wfile.write(bytes(Answer, 'utf-8') + b'\r\n')
                     LogText = Answer
                     Text_List = LogText.split('\r\n')
