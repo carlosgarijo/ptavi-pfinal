@@ -4,8 +4,8 @@
 """
 Script de comprobación de entrega de práctica
 
-Para ejecutarlo, desde la shell: 
- $ python check-pfinal.py login_laboratorio
+Para ejecutarlo, desde la shell:
+ $ python check-pfinal.py login_github
 
 """
 
@@ -14,62 +14,11 @@ import random
 import sys
 import subprocess
 
-
-# Diccionario con la relación de nombres de usuario
-# en los laboratorios (clave) y nombres de usuario en GitHub (valor)
-github_dict = {
-    "iarranz": "igarag",
-    "smarin": "silviamaa",
-    "miriammz": "miriammz",
-    "rgalan": "raquelgalan",
-    "jmarugan": "jfernandezmaru",
-    "jcdb": "jcdb",
-    "jcdb": "jcdb",
-    "maferna": "mghfdez",
-    "mtejedor": "mtejedorg",
-    "apavo": "apavo",
-    "oterino": "aoterinoc",
-    "ndiaz": "nathdiaza",
-    "crodrigu": "crodriguezgarci",
-    "ilope": "ilope236",
-    "opedraza": "olallasanchez",
-    "calvarez": "calvarezpe",
-    "dpascual": "dpascualhe",
-    "avera": "Abel-V",
-    "amoles": "alvaromv83",
-    "aramas": "aramas",
-    "jbaos": "JaviBM11",
-    "rsierra": "rsierrangulo",
-    "imalo": "nmalo5",
-    "mireya": "mireepink",
-    "albagc": "albagcs",
-    "rpablos": "raquelpt",
-    "cgarcia": "celiagarcia",
-    "lyanezgu": "lyanezgu",
-    "omarled": "auronff10",
-    "roger": "rogerurrutia",
-    "lsoria": "lsoriai",
-    "zhiyuan": "ziyua",
-    "mcapitan": "mcapitan",
-    "juanmis": "Jmita", 
-    "molina": "jmartinezmolina",
-    "afrutos": "alejandrodefrutos",
-    "carlosjloh": "CarlosJLoH",
-    "sagun": "caarrieta",
-}
-
 if len(sys.argv) != 2:
     print
-    sys.exit("Usage : $ python check-pfinal.py login_laboratorio")
+    sys.exit("Usage : $ python check-pfinal.py login_github")
 
-if sys.argv[1] not in github_dict:
-    print
-    print "Usage: $ python check-pfinal.py login_laboratorio"
-    print "donde login_laboratorio es tu login en los laboratorios Linux"
-    print
-    sys.exit()
-
-repo_git = "http://github.com/" + github_dict[sys.argv[1]] + "/ptavi-pfinal"
+repo_git = "http://github.com/" + sys.argv[1] + "/ptavi-pfinal"
 
 files = ['README.md',
          'LICENSE',
@@ -80,6 +29,8 @@ files = ['README.md',
          'ua1.xml',
          'ua2.xml',
          'pr.xml',
+         'passwords',
+         'notas.txt',
          'llamada.libpcap',
          'error.libpcap',
          'check-pfinal.py',
@@ -114,10 +65,10 @@ avanzadas = 0
 numero_avanzadas = 0
 puntuacion_max_avanzadas = 0
 
-print 
+print
 
 
-print 
+print
 print "Clonando el repositorio " + repo_git + "\n"
 os.system('git clone ' + repo_git + ' /tmp/' + aleatorio + ' > /dev/null 2>&1')
 try:
@@ -125,7 +76,7 @@ try:
 except OSError:
     error = 1
     print "Error: No se ha podido acceder al repositorio " + repo_git + "."
-    print 
+    print
     sys.exit()
 
 for file in student_file_list:
@@ -152,7 +103,7 @@ if avanzadas:
 else:
     print "No se han implementado funcionalidades avanzadas. No hay fichero avanzadas.txt"
     print
-    
+
 for filename in student_file_list:
     if filename == "avanzadas.txt":
         fich = open('/tmp/' + aleatorio + '/' + filename, 'r')
@@ -171,7 +122,7 @@ for filename in student_file_list:
         error = 1
         error_ficheros = 1
         print "Error: " + filename + " no encontrado. Tienes que subirlo al repositorio."
-        print 
+        print
     if ".libpcap" in filename:
         output = subprocess.Popen(["tshark", "-r", "/tmp/" + aleatorio + "/" + filename], stdout=subprocess.PIPE)
         output2 = subprocess.Popen(["wc"], stdin=output.stdout, stdout=subprocess.PIPE)
@@ -183,26 +134,26 @@ for filename in student_file_list:
             error = 1
             print "Aviso: La captura realizada y guardada en " + filename + " contiene más de 50 paquetes."
             print "       Probablemente no esté filtrada convenientemente."
-            print 
+            print
 
 if error_ficheros:
-    print 
+    print
     print "Error: solamente hay que subir al repositorio los ficheros indicados en las instrucciones."
-    print 
+    print
     print "Utiliza 'git ls-files' para ver los ficheros que hay actualmente en el repositorio."
     print "Utiliza 'git rm fichero' para borrar los que no han de estar."
     print "Utiliza 'git mv fichero_antiguo fichero_nuevo' si tienen nombre incorrecto."
     print
     print "Al finalizar este proceso, haz un commit y pasa el check otra vez."
 
-if puntuacion_max_avanzadas > 2.0:
-    puntuacion_max_avanzadas = 2.0
+if puntuacion_max_avanzadas > 2.5:
+    puntuacion_max_avanzadas = 2.5
 
 if avanzadas:
     print
     print "Se han implementado " + str(numero_avanzadas) + " requisitos avanzados"
     print "La puntuación máxima que se puede obtener por requisitos avanzados es de " + str(puntuacion_max_avanzadas) + " puntos"
-    print 
+    print
 
 if not error:
     print "La salida de pep8 es: (si todo va bien, no ha de mostrar nada)"
@@ -217,6 +168,6 @@ if not error:
     print "Comprueba de todas formas los mensajes del script de check."
 else:
     print
-    print "***************************************************"    
+    print "***************************************************"
     print "Resultado del check: Existen errores en la entrega."
 print
